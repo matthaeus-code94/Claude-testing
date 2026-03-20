@@ -1,70 +1,102 @@
-# LLM Company Research Tool
+# Digital Due Diligence & GEO Intelligence Platform
 
-Analyse how a company appears in LLM-generated responses. Run simulations with diverse prompts, compute statistical metrics, and export results to Excel or view them in an interactive dashboard.
+A professional-grade digital due diligence tool for analyzing companies whose primary GTM channel is online. Built to the analytical standards of a top-tier strategy consulting engagement.
 
-## What It Measures
+## Modules
 
-| Metric | Description |
-|--------|-------------|
-| **Mention Rate** | How often the LLM mentions the company in relevant contexts |
-| **Ranking Position** | Where the company appears in ranked/numbered lists |
-| **Sentiment Score** | Whether language about the company is positive or negative (-1 to +1) |
-| **Competitive Comparison** | How the company's visibility compares to named competitors |
-| **Visibility Score** | Composite 0–100 score combining all metrics |
+| # | Module | Key Outputs |
+|---|--------|-------------|
+| 1 | **Traffic Intelligence** | Monthly visits, source mix, geo distribution, device split, anomaly flags |
+| 2 | **SEO Health** | Domain authority, Core Web Vitals, keyword rankings, structured data, crawl issues |
+| 3 | **GEO Engine** | AI mention frequency, citation rates, E-E-A-T signals, knowledge graph, GEO score 0-100 |
+| 4 | **Tech Stack** | Technology detection, Lighthouse scores, security posture, tech debt signals |
+| 5 | **Competitive** | Auto-competitor ID, share of voice, whitespace keywords, side-by-side benchmarking |
+| 6 | **Strategic Scorecard** | Digital Health Score, strengths/risks/opportunities, management questions, 100-day priorities |
 
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
-pip install -r requirements.txt
+# Install dependencies
+npm install
 
-# 2. Set your API key
-export ANTHROPIC_API_KEY=sk-ant-...
+# Configure API keys (at minimum, ANTHROPIC_API_KEY)
+cp .env.example .env.local
+# Edit .env.local with your keys
 
-# 3a. Launch the dashboard (recommended for non-technical users)
-streamlit run app.py
-
-# 3b. Or use the CLI
-python run_research.py --company "Stripe" --industry "payments" \
-    --competitors "Square,PayPal,Adyen" --simulations 20
+# Run the development server
+npm run dev
 ```
 
-## Dashboard
+Open [http://localhost:3000](http://localhost:3000) and enter a target domain.
 
-The Streamlit dashboard provides:
-- One-click research setup via sidebar controls
-- Real-time progress bar during simulations
-- Interactive charts (visibility gauge, mention rates, sentiment distribution)
-- Competitor comparison bar charts
-- Detailed statistics tables
-- One-click Excel report download
+## API Keys & Data Sourcing
 
-## Excel Report
+The tool uses a **fallback chain** for data sourcing:
 
-The exported Excel file contains three sheets:
-1. **Executive Summary** — KPIs, visibility score, competitor comparison
-2. **Category Breakdown** — Per-category stats with embedded charts
-3. **Raw Results** — Every simulation prompt, response, and metric
+| Priority | Source | Cost | Coverage |
+|----------|--------|------|----------|
+| 1 | Paid APIs (SimilarWeb, DataForSEO) | Paid | Most accurate |
+| 2 | Free APIs (Google PSI) | Free | Always available |
+| 3 | Crawl + heuristics (fetch + cheerio) | Free | Always available |
+| 4 | LLM inference (Claude/GPT) | API costs | Intelligent estimates |
 
-## Project Structure
+**Minimum requirement:** Set `ANTHROPIC_API_KEY` for GEO module and scorecard generation.
+
+**For richer analysis**, add:
+- `GOOGLE_PSI_API_KEY` — Free, provides real Lighthouse scores and Core Web Vitals
+- `OPENAI_API_KEY` — Enables GPT-4o queries in GEO module
+- `PERPLEXITY_API_KEY` — Enables Perplexity Sonar Pro queries in GEO module
+
+## Architecture
 
 ```
-├── app.py                 # Streamlit dashboard
-├── run_research.py        # CLI runner
-├── src/
-│   ├── config.py          # Configuration dataclasses
-│   ├── prompts.py         # Prompt templates by category
-│   ├── engine.py          # LLM simulation engine
-│   ├── analysis.py        # Statistical analysis
-│   └── export.py          # Excel export with formatting & charts
-├── requirements.txt
-└── .env.example
+src/
+├── app/
+│   ├── page.tsx                  # Main dashboard (client component)
+│   ├── layout.tsx                # Root layout
+│   ├── globals.css               # Design system tokens
+│   └── api/analyze/route.ts      # Analysis API endpoint
+├── lib/
+│   ├── utils.ts                  # Shared utilities
+│   ├── api-config.ts             # API key management
+│   └── modules/
+│       ├── traffic.ts            # Module 1: Traffic Intelligence
+│       ├── seo.ts                # Module 2: SEO Health
+│       ├── geo.ts                # Module 3: GEO Engine (core differentiator)
+│       ├── techstack.ts          # Module 4: Tech Stack Assessment
+│       ├── competitive.ts        # Module 5: Competitive Benchmarking
+│       └── scorecard.ts          # Module 6: Strategic Scorecard
+├── components/
+│   ├── ui/                       # RAGBadge, MetricCard, ScoreGauge, etc.
+│   ├── charts/                   # SpiderChart, BarChart, DonutChart
+│   └── modules/                  # Panel components for each module
+└── types/
+    └── index.ts                  # Full TypeScript type definitions
 ```
 
-## Prompt Categories
+Each module runs independently and in parallel. Errors in one module don't crash others — the dashboard shows "data unavailable" gracefully.
 
-- **Product Recommendation** — "What companies would you recommend for X?"
-- **Brand Perception** — "What do people think about Company?"
-- **Industry Leadership** — "Who are the market leaders in X?"
-- **Customer Sentiment** — "What do customers say about Company?"
-- **Competitive Comparison** — "How does Company compare to Competitor?"
+## GEO Module — Differentiator
+
+The GEO (Generative Engine Optimization) module is the forward-looking AI-readiness assessment:
+
+1. **Query Generation** — Infers buyer queries from company/industry
+2. **AI Answer Harvesting** — Queries Claude, GPT-4o, Perplexity in parallel
+3. **Brand Signal Extraction** — Parses mentions, citations, sentiment
+4. **Site Readiness Scan** — Checks FAQ content, schema markup, E-E-A-T signals
+5. **Knowledge Graph Check** — Wikidata entity lookup
+6. **Scoring** — 6-dimension weighted score (0-100)
+7. **Recommendations** — Auto-generated prioritized action items
+
+## Export
+
+- **PDF**: Click "Export PDF" to print the dashboard (optimized for print)
+- All data visible in the dashboard with RAG (Red/Amber/Green) status indicators
+
+## Tech Stack
+
+- **Frontend**: Next.js 15 + React 19 + TypeScript + Tailwind CSS v4
+- **Charts**: Recharts (radar, bar, donut)
+- **Backend**: Next.js API routes
+- **Crawling**: fetch + cheerio for on-page analysis
+- **AI**: Anthropic, OpenAI, and Perplexity APIs for GEO analysis

@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #0a0a0f;
+  --color-surface: #12121a;
+  --color-surface-2: #1a1a26;
+  --color-border: #2a2a3a;
+  --color-text: #e8e8f0;
+  --color-text-muted: #8888a0;
+  --color-primary: #4f8ff7;
+  --color-primary-dim: #3a6bc2;
+  --color-green: #34d399;
+  --color-amber: #fbbf24;
+  --color-red: #f87171;
+  --color-green-bg: rgba(52, 211, 153, 0.1);
+  --color-amber-bg: rgba(251, 191, 36, 0.1);
+  --color-red-bg: rgba(248, 113, 113, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+/* RAG status indicators */
+.rag-green { color: var(--color-green); }
+.rag-amber { color: var(--color-amber); }
+.rag-red { color: var(--color-red); }
+.rag-green-bg { background: var(--color-green-bg); border: 1px solid rgba(52, 211, 153, 0.3); }
+.rag-amber-bg { background: var(--color-amber-bg); border: 1px solid rgba(251, 191, 36, 0.3); }
+.rag-red-bg { background: var(--color-red-bg); border: 1px solid rgba(248, 113, 113, 0.3); }
