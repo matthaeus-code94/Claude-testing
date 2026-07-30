@@ -192,6 +192,24 @@ export interface AnalysisResult {
   techStack: TechStackData | null;
   competitive: CompetitiveData | null;
   scorecard: StrategicScorecard | null;
+  tokenUsage: TokenUsageSummary | null;
+}
+
+// ─── Token Usage ───
+export interface TokenUsageEntry {
+  provider: string;
+  model: string;
+  module: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface TokenUsageSummary {
+  entries: TokenUsageEntry[];
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalTokens: number;
+  estimatedCost: number;
 }
 
 // ─── API Config ───

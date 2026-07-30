@@ -1,9 +1,9 @@
 import { APIConfig, CompetitiveData, CompetitorProfile, RAGStatus, ScoredMetric } from '@/types';
 import { fetchWithTimeout, ragFromScore } from '@/lib/utils';
 import { hasKey } from '@/lib/api-config';
+import { TokenTracker } from '@/lib/token-tracker';
 
-async function inferCompetitors(domain: string, companyName: string, industry: string, config: APIConfig): Promise<string[]> {
-  // Try using an LLM to identify competitors
+async function inferCompetitors(domain: string, companyName: string, industry: string, config: APIConfig, tracker: TokenTracker): Promise<string[]> {
   if (hasKey(config, 'anthropicKey')) {
     try {
       const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
@@ -23,6 +23,9 @@ async function inferCompetitors(domain: string, companyName: string, industry: s
         }),
       }, 20000);
       const data = await res.json();
+      if (data.usage) {
+        tracker.add({ provider: 'Anthropic', model: 'claude-sonnet-4-6', module: 'Competitive', inputTokens: data.usage.input_tokens ?? 0, outputTokens: data.usage.output_tokens ?? 0 });
+      }
       const text = data.content?.[0]?.text || '';
       const match = text.match(/\[[\s\S]*?\]/);
       if (match) return JSON.parse(match[0]).slice(0, 4);
@@ -74,12 +77,13 @@ export async function analyzeCompetitive(
   companyName: string,
   industry: string,
   competitors: string[],
-  config: APIConfig
+  config: APIConfig,
+  tracker: TokenTracker = new TokenTracker()
 ): Promise<CompetitiveData> {
   // Step 1: Identify competitors if not provided
   let competitorDomains = competitors.length > 0
     ? competitors
-    : await inferCompetitors(domain, companyName, industry, config);
+    : await inferCompetitors(domain, companyName, industry, config, tracker);
 
   if (competitorDomains.length === 0) {
     competitorDomains = []; // Will show empty state
@@ -110,6 +114,9 @@ export async function analyzeCompetitive(
         }),
       }, 20000);
       const data = await res.json();
+      if (data.usage) {
+        tracker.add({ provider: 'Anthropic', model: 'claude-sonnet-4-6', module: 'Competitive', inputTokens: data.usage.input_tokens ?? 0, outputTokens: data.usage.output_tokens ?? 0 });
+      }
       const text = data.content?.[0]?.text || '';
       const match = text.match(/\{[\s\S]*\}/);
       if (match) {
@@ -149,6 +156,9 @@ export async function analyzeCompetitive(
         }),
       }, 20000);
       const data = await res.json();
+      if (data.usage) {
+        tracker.add({ provider: 'Anthropic', model: 'claude-sonnet-4-6', module: 'Competitive', inputTokens: data.usage.input_tokens ?? 0, outputTokens: data.usage.output_tokens ?? 0 });
+      }
       const text = data.content?.[0]?.text || '';
       const match = text.match(/\[[\s\S]*?\]/);
       if (match) whitespaceKeywords.push(...JSON.parse(match[0]));

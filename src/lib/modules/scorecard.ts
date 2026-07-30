@@ -10,6 +10,7 @@ import {
 } from '@/types';
 import { ragFromScore, fetchWithTimeout } from '@/lib/utils';
 import { hasKey } from '@/lib/api-config';
+import { TokenTracker } from '@/lib/token-tracker';
 
 interface ModuleResults {
   traffic: TrafficData | null;
@@ -147,7 +148,8 @@ function extractOpportunities(results: ModuleResults): string[] {
 async function generateManagementQuestions(
   companyName: string,
   results: ModuleResults,
-  config: APIConfig
+  config: APIConfig,
+  tracker: TokenTracker
 ): Promise<string[]> {
   const context = {
     trafficScore: results.traffic?.score,
@@ -179,6 +181,9 @@ async function generateManagementQuestions(
         }),
       }, 25000);
       const data = await res.json();
+      if (data.usage) {
+        tracker.add({ provider: 'Anthropic', model: 'claude-sonnet-4-6', module: 'Scorecard', inputTokens: data.usage.input_tokens ?? 0, outputTokens: data.usage.output_tokens ?? 0 });
+      }
       const text = data.content?.[0]?.text || '';
       const match = text.match(/\[[\s\S]*\]/);
       if (match) return JSON.parse(match[0]).slice(0, 10);
@@ -237,13 +242,14 @@ function generatePriorities(results: ModuleResults): { priority: string; impact:
 export async function generateScorecard(
   companyName: string,
   results: ModuleResults,
-  config: APIConfig
+  config: APIConfig,
+  tracker: TokenTracker = new TokenTracker()
 ): Promise<StrategicScorecard> {
   const { score: digitalHealthScore, moduleScores } = computeDigitalHealthScore(results);
   const strengths = extractStrengths(results);
   const risks = extractRisks(results);
   const opportunities = extractOpportunities(results);
-  const managementQuestions = await generateManagementQuestions(companyName, results, config);
+  const managementQuestions = await generateManagementQuestions(companyName, results, config, tracker);
   const valuationPriorities = generatePriorities(results);
 
   // Executive summary

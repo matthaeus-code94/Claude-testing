@@ -7,6 +7,7 @@ import { analyzeGEO } from '@/lib/modules/geo';
 import { analyzeTechStack } from '@/lib/modules/techstack';
 import { analyzeCompetitive } from '@/lib/modules/competitive';
 import { generateScorecard } from '@/lib/modules/scorecard';
+import { TokenTracker } from '@/lib/token-tracker';
 import type { AnalysisResult } from '@/types';
 
 export const maxDuration = 120; // Allow up to 2 min for full analysis
@@ -23,12 +24,13 @@ export async function POST(request: NextRequest) {
     const domain = extractDomain(rawDomain);
     const config = getAPIConfig();
     const name = companyName || domain.split('.')[0].charAt(0).toUpperCase() + domain.split('.')[0].slice(1);
+    const tracker = new TokenTracker();
 
     // Run modules in parallel where possible
     const [trafficResult, seoResult, geoResult, techResult] = await Promise.allSettled([
       analyzeTraffic(domain, config),
       analyzeSEO(domain, config),
-      analyzeGEO(domain, name, industry || '', competitors || [], config),
+      analyzeGEO(domain, name, industry || '', competitors || [], config, tracker),
       analyzeTechStack(domain, config),
     ]);
 
@@ -40,14 +42,16 @@ export async function POST(request: NextRequest) {
     // Competitive needs some prior results context
     let competitive = null;
     try {
-      competitive = await analyzeCompetitive(domain, name, industry || '', competitors || [], config);
+      competitive = await analyzeCompetitive(domain, name, industry || '', competitors || [], config, tracker);
     } catch { /* graceful degradation */ }
 
     // Scorecard synthesizes everything
     let scorecard = null;
     try {
-      scorecard = await generateScorecard(name, { traffic, seo, geo, techStack, competitive }, config);
+      scorecard = await generateScorecard(name, { traffic, seo, geo, techStack, competitive }, config, tracker);
     } catch { /* graceful degradation */ }
+
+    const tokenUsage = tracker.getSummary();
 
     const result: AnalysisResult = {
       domain,
@@ -68,6 +72,7 @@ export async function POST(request: NextRequest) {
       techStack,
       competitive,
       scorecard,
+      tokenUsage: tokenUsage.totalTokens > 0 ? tokenUsage : null,
     };
 
     return NextResponse.json(result);

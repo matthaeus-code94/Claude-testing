@@ -9,6 +9,7 @@ import GEOPanel from '@/components/modules/GEOPanel';
 import TechStackPanel from '@/components/modules/TechStackPanel';
 import CompetitivePanel from '@/components/modules/CompetitivePanel';
 import ScorecardPanel from '@/components/modules/ScorecardPanel';
+import TokenUsagePanel from '@/components/ui/TokenUsagePanel';
 
 type Tab = 'overview' | 'traffic' | 'seo' | 'geo' | 'techstack' | 'competitive';
 
@@ -221,6 +222,11 @@ export default function Dashboard() {
               )}
               {activeTab === 'competitive' && result.competitive && (
                 <CompetitivePanel data={result.competitive} companyName={result.companyName} />
+              )}
+
+              {/* Token Usage - shown on all tabs when available */}
+              {result.tokenUsage && (
+                <TokenUsagePanel data={result.tokenUsage} />
               )}
 
               {/* Show "unavailable" message if module failed */}

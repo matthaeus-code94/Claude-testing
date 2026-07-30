@@ -1,6 +1,7 @@
 import { APIConfig, GEOData, GEOResponse, ScoredMetric } from '@/types';
 import { fetchWithTimeout, ragFromScore } from '@/lib/utils';
 import { hasKey } from '@/lib/api-config';
+import { TokenTracker } from '@/lib/token-tracker';
 import * as cheerio from 'cheerio';
 
 // ─── Step 1: Query Generation ───
@@ -24,7 +25,7 @@ function generateQueries(companyName: string, industry: string): { query: string
 }
 
 // ─── Step 2: AI Answer Harvesting ───
-async function queryAnthropic(query: string, apiKey: string): Promise<string> {
+async function queryAnthropic(query: string, apiKey: string, tracker: TokenTracker): Promise<string> {
   const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -39,10 +40,13 @@ async function queryAnthropic(query: string, apiKey: string): Promise<string> {
     }),
   }, 25000);
   const data = await res.json();
+  if (data.usage) {
+    tracker.add({ provider: 'Anthropic', model: 'claude-sonnet-4-6', module: 'GEO', inputTokens: data.usage.input_tokens ?? 0, outputTokens: data.usage.output_tokens ?? 0 });
+  }
   return data.content?.[0]?.text || '';
 }
 
-async function queryOpenAI(query: string, apiKey: string): Promise<string> {
+async function queryOpenAI(query: string, apiKey: string, tracker: TokenTracker): Promise<string> {
   const res = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -56,10 +60,13 @@ async function queryOpenAI(query: string, apiKey: string): Promise<string> {
     }),
   }, 25000);
   const data = await res.json();
+  if (data.usage) {
+    tracker.add({ provider: 'OpenAI', model: 'gpt-4o', module: 'GEO', inputTokens: data.usage.prompt_tokens ?? 0, outputTokens: data.usage.completion_tokens ?? 0 });
+  }
   return data.choices?.[0]?.message?.content || '';
 }
 
-async function queryPerplexity(query: string, apiKey: string): Promise<string> {
+async function queryPerplexity(query: string, apiKey: string, tracker: TokenTracker): Promise<string> {
   const res = await fetchWithTimeout('https://api.perplexity.ai/chat/completions', {
     method: 'POST',
     headers: {
@@ -73,6 +80,9 @@ async function queryPerplexity(query: string, apiKey: string): Promise<string> {
     }),
   }, 25000);
   const data = await res.json();
+  if (data.usage) {
+    tracker.add({ provider: 'Perplexity', model: 'sonar-pro', module: 'GEO', inputTokens: data.usage.prompt_tokens ?? 0, outputTokens: data.usage.completion_tokens ?? 0 });
+  }
   return data.choices?.[0]?.message?.content || '';
 }
 
@@ -212,16 +222,17 @@ export async function analyzeGEO(
   companyName: string,
   industry: string,
   competitors: string[],
-  config: APIConfig
+  config: APIConfig,
+  tracker: TokenTracker = new TokenTracker()
 ): Promise<GEOData> {
   const queries = generateQueries(companyName, industry);
   const queryResults: GEOResponse[] = [];
 
   // Determine available engines
   const engines: { name: string; fn: (q: string) => Promise<string> }[] = [];
-  if (hasKey(config, 'anthropicKey')) engines.push({ name: 'Claude', fn: (q) => queryAnthropic(q, config.anthropicKey) });
-  if (hasKey(config, 'openaiKey')) engines.push({ name: 'GPT-4o', fn: (q) => queryOpenAI(q, config.openaiKey) });
-  if (hasKey(config, 'perplexityKey')) engines.push({ name: 'Perplexity', fn: (q) => queryPerplexity(q, config.perplexityKey) });
+  if (hasKey(config, 'anthropicKey')) engines.push({ name: 'Claude', fn: (q) => queryAnthropic(q, config.anthropicKey, tracker) });
+  if (hasKey(config, 'openaiKey')) engines.push({ name: 'GPT-4o', fn: (q) => queryOpenAI(q, config.openaiKey, tracker) });
+  if (hasKey(config, 'perplexityKey')) engines.push({ name: 'Perplexity', fn: (q) => queryPerplexity(q, config.perplexityKey, tracker) });
 
   if (engines.length === 0) {
     // No LLM keys — return minimal analysis with site scan only
